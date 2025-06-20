@@ -1,7 +1,9 @@
+const {instrument} = require('@socket.io/admin-ui');
 const io = require('socket.io')(3000, {
   cors: {
     origin: '*',
-}});
+},
+});
 io.on('connection', socket => {
   console.log('New client connected', socket.id);
 
@@ -9,11 +11,22 @@ io.on('connection', socket => {
     console.log('Client disconnected');
   });
 
-  socket.on('chat-message', (data) => {
-    console.log('Message received:', data);
+  socket.on('chat-message', (name,message) => {
+    console.log('Message received:', message);
     // Broadcast the message to all clients
-    io.emit('receive-message', data);
-    // socket.broadcast.emit('recieve-message', data); //except for the sender
+    if(name===""){
+      io.emit('receive-message',{name, message}); //all
+    }
+    else{
+      socket.to(name).emit('receive-message',{name, message}); //to specific room // ***** { }
+      //console.log("Message sent to room:", room);
+    }
+    // socket.broadcast.emit('recieve-message', message); //except for the sender
+  });
+  socket.on('join-room', (room) => {
+    socket.join(room);
+    console.log(`Client ${socket.id} joined room: ${room}`);
   });
 })
 
+instrument(io, { auth:false});
