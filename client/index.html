@@ -1,163 +1,106 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>ChatBot</title>
-  <script src="http://localhost:3000/socket.io/socket.io.js"></script>
-  <style>
-    * {
-      box-sizing: border-box;
-    }
-
-    body {
-      margin: 0;
-      padding: 0;
-      font-family: Arial, sans-serif;
-      background-color: #f0f2f5;
-      height: 100vh;
-      display: flex;
-      flex-direction: column;
-    }
-
-    header {
-      background-color: #4a90e2;
-      color: white;
-      padding: 1rem;
-      text-align: center;
-      font-size: 2rem;
-    }
-
-    #chat-log {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      padding: 1rem;
-      overflow-y: auto;
-      height: 70vh;
-    }
-
-    .message {
-      max-width: 60%;
-      padding: 0.7rem 1rem;
-      margin: 0.5rem 0;
-      border-radius: 1rem;
-      word-wrap: break-word;
-      font-size: 1rem;
-    }
-
-    .sent {
-      align-self: flex-end;
-      background-color: #daf1da;
-      text-align: right;
-    }
-
-    .received {
-      align-self: flex-start;
-      background-color: #e2e2e2;
-      text-align: left;
-    }
-
-    .input-area {
-      display: flex;
-      padding: 1rem;
-      background-color: #fff;
-      gap: 0.5rem;
-    }
-
-    .input-area input[type="text"] {
-      padding: 0.7rem;
-      font-size: 1rem;
-      border: 1px solid #ccc;
-      border-radius: 0.5rem;
-    }
-
-    #name-input {
-      width: 20%;
-    }
-
-    #message-input {
-      flex: 1;
-    }
-
-    #send-button {
-      padding: 0.7rem 1.2rem;
-      font-size: 1rem;
-      background-color: #4a90e2;
-      color: white;
-      border: none;
-      border-radius: 0.5rem;
-      cursor: pointer;
-    }
-
-    #send-button:hover {
-      background-color: #357ABD;
-    }
-  </style>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>ChatBot</title>
+    <script src="https://blitztalk-g9qw.onrender.com/socket.io/socket.io.js"></script>
+    <link rel="stylesheet" href="style.css" />
 </head>
 <body>
+    <div class="particles" id="particles"></div>
 
-  <header>ChatBot</header>
+    <header id="head">
+        <span class="status-dot"></span>
+        Off
+    </header>
 
-  <div id="chat-log"></div>
+    <div id="chat-log"></div>
 
-  <div class="input-area">
-    <input type="text" id="name-input" placeholder="Your name">
-    <input type="text" id="message-input" placeholder="Type your message here...">
-    <button id="send-button" onclick="handleSubmit()">Send</button>
-  </div>
+    <div class="input-area">
+        <input type="text" id="name-input" placeholder="Your name">
+        <button id="join-button" onclick="joinroom()">Join Room</button>
+    </div>
 
-  <script>
-    const socket = io("http://localhost:3000");
+    <div class="input-area">
+        <input type="text" id="message-input" placeholder="Type your message here...">
+        <button id="send-button" onclick="handleSubmit()">Send</button>
+    </div>
 
-    socket.on("connect", () => {
-      console.log("Connected to server with ID:", socket.id);
-    });
-
-    socket.on("receive-message", (data) => {
-      console.log("Received:", data);
-      displayMessage(data.name, data.message, false,false);
-    });
-    // Save messages to local storage
-    window.addEventListener("DOMContentLoaded", () => {
-        const savedMessages = JSON.parse(localStorage.getItem("chat-history")) || [];
-        for (const msg of savedMessages) {
-            displayMessage(msg.name, msg.message, msg.isSender,false);
+    <script>
+        // Create particles
+        function createParticles() {
+            const container = document.getElementById('particles');
+            for (let i = 0; i < 25; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.top = Math.random() * 100 + '%';
+                particle.style.animationDelay = Math.random() * 6 + 's';
+                container.appendChild(particle);
+            }
         }
+
+        const socket = io("https://blitztalk-g9qw.onrender.com/");
+
+        socket.on("connect", () => {
+            console.log("Connected to server with ID:", socket.id);
+            const header = document.getElementById("head");
+            header.innerHTML = '<span class="status-dot"></span>Connected - ' + socket.id;
         });
 
+        const joinroom = () => {
+            const header = document.getElementById("head");
+            const room = document.getElementById("name-input").value.trim();
+            
+            if (room) {
+                header.innerHTML = '<span class="status-dot"></span>Connected to customRoom - ' + room;
+            } else {
+                header.innerHTML = '<span class="status-dot"></span>Connected to global room';
+            }
+            
+            socket.emit("join-room", room);
+        };
 
-    function handleSubmit() {
-      const nameInput = document.getElementById("name-input");
-      const messageInput = document.getElementById("message-input");
-      const name = nameInput.value.trim();
-      const message = messageInput.value.trim();
+        socket.on("receive-message", (data) => {
+            console.log("Received:", data.name, data.message);
+            displayMessage(data.name, data.message, false);
+        });
 
-      if (name && message) {
-        socket.emit("chat-message", { name, message });
-        displayMessage(name, message, true,true);
-        messageInput.value = "hey there";
-      }
-    }
+        function handleSubmit() {
+            const nameInput = document.getElementById("name-input");
+            const messageInput = document.getElementById("message-input");
+            const name = nameInput.value.trim();
+            const message = messageInput.value.trim();
 
-    function displayMessage(name, message, isSender,save = true) {
-      const chatLog = document.getElementById("chat-log");
-      const msgDiv = document.createElement("div");
-      msgDiv.classList.add("message");
-      msgDiv.classList.add(isSender ? "sent" : "received");
-      msgDiv.innerText = `${name}: ${message}`;
-      chatLog.appendChild(msgDiv);
-      chatLog.scrollTop = chatLog.scrollHeight;
+            if (!message) return;
 
-      // ✅ Save message to localStorage (only if needed)
-    if (save) {
-      const history = JSON.parse(localStorage.getItem("chat-history")) || [];
-      history.push({ name, message, isSender });
-      localStorage.setItem("chat-history", JSON.stringify(history));
-    }
-    }
-  </script>
+            socket.emit("chat-message", name, message);
+            displayMessage(name, message, true);
+            messageInput.value = "";
+        }
 
+        function displayMessage(name, message, isSender) {
+            const chatLog = document.getElementById("chat-log");
+            const msgDiv = document.createElement("div");
+            msgDiv.classList.add("message");
+            msgDiv.classList.add(isSender ? "sent" : "received");
+            msgDiv.innerText = `${name}: ${message}`;
+            chatLog.appendChild(msgDiv);
+            chatLog.scrollTop = chatLog.scrollHeight;
+        }
+
+        // Keyboard events
+        document.getElementById("name-input").addEventListener("keypress", (e) => {
+            if (e.key === "Enter") joinroom();
+        });
+
+        document.getElementById("message-input").addEventListener("keypress", (e) => {
+            if (e.key === "Enter") handleSubmit();
+        });
+
+        // Initialize
+        createParticles();
+    </script>
 </body>
 </html>
-    
