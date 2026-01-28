@@ -1,32 +1,45 @@
-const {instrument} = require('@socket.io/admin-ui');
-const io = require('socket.io')(3000, {
-  cors: {
-    origin: '*',
-},
+const express = require("express");
+const http = require("http");
+const { Server } = require("socket.io");
+
+const app = express();
+const server = http.createServer(app);
+
+const io = new Server(server, {
+    cors: {
+        origin: "*",
+        methods: ["GET", "POST"]
+    }
 });
-io.on('connection', socket => {
-  console.log('New client connected', socket.id);
 
-  socket.on('disconnect', () => {
-    console.log('Client disconnected');
-  });
+io.on("connection", (socket) => {
+    console.log("Connected:", socket.id);
 
-  socket.on('chat-message', (name,message) => {
-    console.log('Message received:', message);
-    // Broadcast the message to all clients
-    if(name===""){
-      io.emit('receive-message',{name, message}); //all
-    }
-    else{
-      socket.to(name).emit('receive-message',{name, message}); //to specific room // ***** { }
-      //console.log("Message sent to room:", room);
-    }
-    // socket.broadcast.emit('recieve-message', message); //except for the sender
-  });
-  socket.on('join-room', (room) => {
-    socket.join(room);
-    console.log(`Client ${socket.id} joined room: ${room}`);
-  });
-})
+    socket.on("join-room", (room) => {
+        if (room) {
+            socket.join(room);
+            console.log(socket.id, "joined room", room);
+        } else {
+            console.log(socket.id, "joined global");
+        }
+    });
 
-instrument(io, { auth:false});
+    socket.on("chat-message", (room, name, message) => {
+        const payload = { name, message };
+
+        // 🔥 CRITICAL FIX: do NOT send back to sender
+        if (room) {
+            socket.to(room).emit("receive-message", payload);
+        } else {
+            socket.broadcast.emit("receive-message", payload);
+        }
+    });
+
+    socket.on("disconnect", () => {
+        console.log("Disconnected:", socket.id);
+    });
+});
+
+server.listen(3000, () => {
+    console.log("Server running on port 3000");
+});
