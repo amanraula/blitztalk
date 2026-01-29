@@ -39,6 +39,10 @@ io.on("connection", (socket) => {
         console.log("Disconnected:", socket.id);
     });
 });
+// health check (for UptimeRobot / Render keep-alive)
+app.get("/", (req, res) => {
+  res.status(200).send("OK");
+});
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
