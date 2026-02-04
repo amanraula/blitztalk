@@ -34,7 +34,7 @@ redisClient.connect().catch((err) => {
 
 
 /* ================= CONFIG ================= */
-const MESSAGE_TTL = 60 * 7; // 7 minutes
+const MESSAGE_TTL = 60 * 30; // 30 minutes
 const MAX_MESSAGES = 200;  // safety cap per room
 
 /* ================= SOCKET HANDLERS ================= */
