@@ -1,5 +1,5 @@
 import { io } from "https://cdn.socket.io/4.0.0/socket.io.esm.min.js";
-const socket = io("http://localhost:3000");
+const socket = io("https://blitztalk-server.onrender.com/");
 
 const chatBox = document.getElementById('chat-box');
 const messageInput = document.getElementById('message-input');
